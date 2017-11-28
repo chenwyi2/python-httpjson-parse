@@ -95,12 +95,12 @@ END GET value functions
 """
 
 
-def ini_influxdb():
+def ini_influxdb(host, database):
     """
     Initial influxdb client
     """
     try:
-        client = influxdb.InfluxDBClient('10.91.250.20', '8086', '', '', 'test')
+        client = influxdb.InfluxDBClient(host, '8086', '', '', database)
         return client
     except Exception as e:
         print 'ini_influxdb' + str(e)
@@ -132,8 +132,8 @@ def write_point(client, result, monitor_point):
                 }
             }
         ]
-        print json_body  # DEBUG
-        # client.write_points(json_body)
+        # print json_body  # DEBUG
+        client.write_points(json_body)
         return client
     except Exception as e:
         print 'write_point' + str(e)
@@ -165,19 +165,18 @@ def run(client, get_func, monitor_point):
             print r_json
             result = error_code
         # DEBUG
-        print str(time.time()) + ' ' + monitor_point['type'] + ' ' + str(monitor_point['interval']) + ' ' + str(result)
+        # print str(time.time()) + ' ' + monitor_point['type'] + ' ' + str(monitor_point['interval']) + ' ' + str(result)
         write_point(client,
                     result,
                     monitor_point)
         time.sleep(monitor_point['interval'])
 
 
-if __name__ == '__main__':
+def parser_start(file_path, influxdb_host, influxdb_database):
     global error_code
     error_code = float(-1)
-    c = ini_influxdb()
+    c = ini_influxdb(influxdb_host, influxdb_database)
     t = []
-    file_path = 'http_json.conf'
     monitor_points = read_config_file(file_path)
     for i in monitor_points:
         thread = threading.Thread(target=run,
@@ -192,3 +191,6 @@ if __name__ == '__main__':
 
     for i in t:
         i.join()
+
+if __name__ == '__main__':
+    parser_start('http_json.conf', '10.91.250.20', 'test')
