@@ -132,8 +132,8 @@ def write_point(client, result, monitor_point):
                 }
             }
         ]
-        # print json_body # DEBUG
-        client.write_points(json_body)
+        print json_body  # DEBUG
+        # client.write_points(json_body)
         return client
     except Exception as e:
         print 'write_point' + str(e)
@@ -164,8 +164,8 @@ def run(client, get_func, monitor_point):
         else:
             print r_json
             result = error_code
-        # TODO
-        # print str(time.time()) + ' ' + monitor_point['type'] + ' ' + str(monitor_point['interval']) + ' ' + str(result)
+        # DEBUG
+        print str(time.time()) + ' ' + monitor_point['type'] + ' ' + str(monitor_point['interval']) + ' ' + str(result)
         write_point(client,
                     result,
                     monitor_point)
@@ -173,7 +173,6 @@ def run(client, get_func, monitor_point):
 
 
 if __name__ == '__main__':
-    # TODO get_json_value function added
     global error_code
     error_code = float(-1)
     c = ini_influxdb()
