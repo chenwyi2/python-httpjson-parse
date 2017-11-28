@@ -27,14 +27,14 @@ def read_config_file(config_file_path):
             monitor_point.append(conf)
         return monitor_point
     except Exception as e:
-        print e
+        print 'read_config_file' + str(e)
         return []
 
 
 def get_json(stats_url, user, passwd):
     """
     GET JSON from HTTP using urllib2
-    Using Add base64 header to handle Basic Auth
+    Using Add base64 header to handle Basic Auth or secret key provided by cloud
     If url is available return the dict transform from json
     else return False
     :param passwd:      http auth user
@@ -42,17 +42,26 @@ def get_json(stats_url, user, passwd):
     :param stats_url:   http url
     """
     try:
+        # replace '$(date +%Y%m%d)' in url with today's date formatted 'YYYYmmdd'
+        stats_url = stats_url.replace(r'$(date+%Y%m%d)', str(time.strftime("%Y%m%d", time.localtime())))
+        # get json
         request = urllib2.Request(stats_url)
         if user != '':
-            base64string = base64.b64encode('%s:%s' % (user, passwd))
-            request.add_header("Authorization", "Basic %s" % base64string)
+
+            if user == 'key':
+                request.add_header("Authorization", "key=%s" % passwd)
+                # if user == key, use auth secret key provided by cloud
+            else:
+                base64string = base64.b64encode('%s:%s' % (user, passwd))
+                request.add_header("Authorization", "Basic %s" % base64string)
+                # else use BASIC AUTH (username and Base64 password)
+
         r = urllib2.urlopen(request).read()
         return_json = json.loads(r)
         return return_json
     except Exception as e:
-        print e
+        print 'get json' + str(e)
         return None
-
 
 
 """
@@ -70,12 +79,15 @@ def get_json_value(origin_json, request_json_path):
         for request_path in request_json_path:
             tmp_json = origin_json
             path = request_path.split('.')
+            # compatible with lists in json like {"a":[{"b":2},{"c":3}]}
+            # config file json_path should be like a.0.b
             for j in path:
+                j = int(j) if j.isdigit() and type(tmp_json) == list else j
                 tmp_json = tmp_json[j]
             json_parse_result += tmp_json
         return float(json_parse_result)
     except Exception as e:
-        print e
+        print 'get_json_value' + str(e)
         return error_code
 
 """
@@ -91,7 +103,7 @@ def ini_influxdb():
         client = influxdb.InfluxDBClient('10.91.250.20', '8086', '', '', 'test')
         return client
     except Exception as e:
-        print e
+        print 'ini_influxdb' + str(e)
         return False
 
 
@@ -120,11 +132,11 @@ def write_point(client, result, monitor_point):
                 }
             }
         ]
-        print json_body
-        #client.write_points(json_body)
+        # print json_body # DEBUG
+        client.write_points(json_body)
         return client
     except Exception as e:
-        print e
+        print 'write_point' + str(e)
         return client
 
 
@@ -153,7 +165,7 @@ def run(client, get_func, monitor_point):
             print r_json
             result = error_code
         # TODO
-        print str(time.time()) + ' ' + monitor_point['type'] + ' ' + str(monitor_point['interval']) + ' ' + str(result)
+        # print str(time.time()) + ' ' + monitor_point['type'] + ' ' + str(monitor_point['interval']) + ' ' + str(result)
         write_point(client,
                     result,
                     monitor_point)
